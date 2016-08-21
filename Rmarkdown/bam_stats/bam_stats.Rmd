@@ -1,0 +1,106 @@
+
+```{r include = FALSE}
+require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
+
+options(max.print = "99"); opts_knit$set(width = 99)
+opts_chunk$set(cache=FALSE, tidy=FALSE)
+
+source("~/cgpbox_cwl_auth.R")
+
+```
+
+<hr>
+
+First step in the cgpbox pipeline.  Generates useful stats on the wildtype and mutant tumour bams that will be used in the pipeline.
+
+## base command
+
+```{sh base command, eval=FALSE}
+
+bam_stats -i $BAM_MT_TMP -o $BAM_MT_TMP.bas
+
+```
+
+<br><br><br><br>
+
+## docker 
+
+The docker conatiner is
+
+``` cgrlab/cgpbox_dev:develop ```
+
+
+## arguments
+
+```{r arguments, eval=run.mode=="push"}
+arguments = list(
+  
+input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
+
+)
+
+```
+
+## App ports {.tabset .tabset-fade .tabset-tabs}
+
+### Inputs
+
+```{r inputs, eval=run.mode=="push"}
+inputs = list(
+  
+input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
+
+)
+
+```
+
+### Outputs
+
+```{r output, eval = run.mode=="push"}
+
+outputs = list(
+
+output(id = "std_out", label = "std_out", 
+description = "standard output", type = "File...",
+metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"*.{out}\"")),
+  
+output(id = "bas", label = "bam stat output", 
+description = "bam stat output", type = "File",
+inheritMetadataFrom = "#bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"*.bas\""))
+  
+)
+
+
+```
+
+## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+  
+### Tool object
+
+```{r 5 create tool object, eval=run.mode=="push"}
+
+tool <- Tool(
+id = "bam-stats", 
+label = "CGP bam stats",
+hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
+baseCommand = "bam_stats",
+stdout = "std.out",
+inputs = inputs,
+outputs = outputs)
+
+
+```
+
+### Push app to sbg platform
+
+```{r 6 push app to sbg, eval=destination=="platform"}
+
+p$app_add("bam-stats", tool)
+
+
+```
+

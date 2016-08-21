@@ -1,0 +1,130 @@
+
+```{r include = FALSE}
+require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
+
+options(max.print = "99"); opts_knit$set(width = 99)
+opts_chunk$set(cache=FALSE, tidy=FALSE)
+
+source("~/cgpbox_cwl_auth.R")
+
+```
+
+<hr>
+
+Somatic copy number analysis using paired end wholegenome sequencing
+
+https://github.com/cancerit/ascatNgs
+
+## base command
+
+```{sh base command, eval=FALSE}
+ascat.pl
+-o /datastore/output/${NAME_MT}_vs_${NAME_WT}/ascat \
+-t $BAM_MT_TMP \
+-n $BAM_WT_TMP \
+-sg $REF_BASE/ascat/SnpGcCorrections.tsv \
+-r genome.fa
+-q 20
+-g L
+-rs '$SPECIES'
+-ra $ASSEMBLY
+-pr $PROTOCOL
+-pl ILLUMINA
+-c $CPU
+
+```
+
+<br><br><br><br>
+
+## docker 
+
+The docker conatiner is
+
+``` cgrlab/cgpbox_dev:develop ```
+
+## arguments
+
+```{r arguments, eval=run.mode=="skip"}
+arguments = list(
+  
+input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-n"),
+  
+input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-t"),
+  
+input(id = "reference", label = "reference", description = "genome reference", type = "File", prefix = "-r"),
+
+input(id = "snp_gc_corrections", label = "SNP GC corrections file", description = "SNP GC corrections file", type = "File", prefix = "-sg")
+  
+)
+
+```
+
+## App ports {.tabset .tabset-fade .tabset-tabs}
+
+### Inputs
+
+```{r inputs, eval=run.mode=="push"}
+
+inputs = list(
+input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-n"),
+  
+input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-t"),
+  
+input(id = "reference", label = "reference", description = "genome reference", type = "File", prefix = "-r"),
+
+input(id = "snp_gc_corrections", label = "SNP GC corrections file", description = "SNP GC corrections file", type = "File", prefix = "-sg")
+
+)
+
+```
+
+### Outputs
+
+```{r output, eval = run.mode=="push"}
+
+outputs = list(
+
+output(id = "std_out", label = "std_out", 
+description = "standard output", type = "File...",
+metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"*.{out}\"")),
+  
+output(id = "cnv_outputs", label = "cnv outputs", 
+description = "cnv_outputs", type = "File",
+inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"*.csv\""))
+  
+)
+
+
+```
+
+## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+  
+### Tool object
+
+```{r 5 create tool object, eval=run.mode=="push"}
+
+tool <- Tool(
+id = "ASCAT", 
+label = "ASCAT",
+hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
+baseCommand = "ascat.pl -o ./",
+stdout = "std.out",
+inputs = inputs,
+outputs = outputs)
+
+
+```
+
+### Push app to sbg platform
+
+```{r 6 push app to sbg, eval=destination=="platform"}
+
+p$app_add("ASCAT", tool)
+
+
+```
+
