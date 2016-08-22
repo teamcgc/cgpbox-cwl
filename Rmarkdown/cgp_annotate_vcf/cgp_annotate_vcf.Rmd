@@ -10,13 +10,28 @@ source("~/cgpbox_cwl_auth.R")
 
 <hr>
 
-First step in the cgpbox pipeline.  Generates useful stats on the wildtype and mutant tumour bams that will be used in the pipeline.
+CGP Annotate
 
 ## base command
 
 ```{sh base command, eval=FALSE}
 
-bam_stats -i $BAM_MT_TMP -o $BAM_MT_TMP.bas
+# annotate pindel
+rm -f /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.annot.vcf.gz*
+AnnotateVcf.pl -t -c $REF_BASE/vagrent/vagrent.cache.gz
+-i /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.flagged.vcf.gz
+-o /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.annot.vcf
+
+# annotate caveman
+rm 
+-f /datastore/output/${NAME_MT}_vs_${NAME_WT}/caveman/${NAME_MT}_vs_${NAME_WT}.annot.muts.vcf.gz*
+set -x
+AnnotateVcf.pl 
+-t 
+-c $REF_BASE/vagrent/vagrent.cache.gz \
+-i /datastore/output/${NAME_MT}_vs_${NAME_WT}/caveman/${NAME_MT}_vs_${NAME_WT}.flagged.muts.vcf.gz \
+-o /datastore/output/${NAME_MT}_vs_${NAME_WT}/caveman/${NAME_MT}_vs_${NAME_WT}.annot.muts.vcf
+set +x
 
 ```
 
@@ -30,14 +45,7 @@ The docker conatiner is
 
 ## arguments
 
-```{r arguments, eval=run.mode=="push"}
-arguments = list(
-  
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
-
-)
-
-```
+No argument added yet
 
 ## App ports {.tabset .tabset-fade .tabset-tabs}
 
@@ -46,7 +54,10 @@ input(id = "bam", label = "bam", description = "either wildtype or tumour bam", 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
+input(id = "vcf", label = "vcf", description = "vcf prep annotation", type = "File", prefix = "-i"),
+
+input(id = "vagrent_cahce", label = "vagrent_cache", description = "vagrent_cahce", type = "File", prefix = "-c")
+
 
 )
 
@@ -64,11 +75,11 @@ metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
-output(id = "bas", label = "bam stat output", 
-description = "bam stat output", type = "File",
-inheritMetadataFrom = "#bam", metadata = list(org = "cgp"),
+output(id = "annotated_vcf", label = "annotated_vcf", 
+description = "annotated vcf", type = "File",
+inheritMetadataFrom = "#vcf", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.bas\""))
+script = "\"*.annot.muts.vcf\""))
   
 )
 
@@ -82,10 +93,10 @@ script = "\"*.bas\""))
 ```{r 5 create tool object, eval=run.mode=="push"}
 
 tool <- Tool(
-id = "bam-stats", 
-label = "CGP bam stats",
+id = "cgp_annotate_vcf", 
+label = "CGP Annotate VCFs",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "bam_stats",
+baseCommand = "AnnotateVcf.pl",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)
@@ -97,7 +108,7 @@ outputs = outputs)
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 
-p$app_add("bam-stats", tool)
+p$app_add("cgp_annotate_vcf", tool)
 
 
 ```
