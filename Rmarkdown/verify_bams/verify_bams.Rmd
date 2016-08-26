@@ -4,7 +4,7 @@ require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
 options(max.print = "99"); opts_knit$set(width = 99)
 opts_chunk$set(cache=FALSE, tidy=FALSE)
 
-source("~/cgpbox_cwl_auth.R")
+source("~/sbg_auth.R")
 
 ```
 
@@ -48,7 +48,7 @@ The docker conatiner is
 ```{r arguments, eval=run.mode=="skip"}
 arguments = list(
   
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-b")
+input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-b", stageInput = "link", secondaryFiles = ".bai")
 
 )
 
@@ -61,7 +61,7 @@ input(id = "bam", label = "bam", description = "either wildtype or tumour bam", 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-b")
+input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-b", stageInput = "link", secondaryFiles = list(".bai"))
 
 
 )
@@ -101,7 +101,7 @@ tool <- Tool(
 id = "verify_bam", 
 label = "verify_bams",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "bam_stats",
+baseCommand = "verifyBamHomChk.pl -d 25 -o ./ -j verify_bam_result.json",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)

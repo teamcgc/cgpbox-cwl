@@ -10,7 +10,7 @@ source("~/sbg_auth.R")
 
 <hr>
 
-First step in the cgpbox pipeline.  Generates useful stats on the wildtype and mutant tumour bams that will be used in the pipeline.
+
 
 ## base command
 
@@ -49,9 +49,9 @@ input(id = "bam", label = "bam", description = "either wildtype or tumour bam", 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-nb"),
+input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-nb", stageInput = "link", secondaryFiles = list(".bai")),
   
-input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-tb")
+input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-tb", stageInput = "link", secondaryFiles = list(".bai"))
   
 
 )
@@ -91,7 +91,7 @@ tool <- Tool(
 id = "genotype-check", 
 label = "compare bam genotypes",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "compareBamGenotypes.pl -o ./ -j result.json",
+baseCommand = "compareBamGenotypes.pl -o ./ -j genotype_check_result.json",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)
