@@ -1,3 +1,4 @@
+
 ```{r include = FALSE}
 require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
 
@@ -10,17 +11,14 @@ source("~/sbg_auth.R")
 
 <hr>
 
-
+Extract reference files
 
 ## base command
 
 ```{sh base command, eval=FALSE}
 
-compareBamGenotypes.pl \
--o /datastore/output/$NAME_WT/genotyped \
--nb $BAM_WT_TMP \
--j /datastore/output/$NAME_WT/genotyped/result.json \
--tb $BAM_MT_TMP \
+mkdir extraced && tar -xvf [file] -C extracted
+
 
 ```
 
@@ -34,26 +32,24 @@ The docker conatiner is
 
 ## arguments
 
-```{r arguments, eval=run.mode=="skip"}
-arguments = list(
-  
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
+## arguments
 
-)
+```{r arguments, eval=run.mode=="skip"}
+arguments = list(value = "extracted", prefix = "-C")
+
+
 
 ```
-
 ## App ports {.tabset .tabset-fade .tabset-tabs}
 
 ### Inputs
 
+Need to add more inputs here.
+
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-nb", stageInput = "link", secondaryFiles = list(".bai")),
-  
-input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-tb", stageInput = "link", secondaryFiles = list(".bai"))
-  
+input(id = "tar_file", label = "tar_file", description = "tar_file", type = "File", position = 1)
 
 )
 
@@ -71,11 +67,11 @@ metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
-output(id = "result", label = "genotype comparison", 
-description = "genotype comarison results", type = "File",
+output(id = "extracted_files", label = "brass_output", 
+description = "extracted_files", type = "File...",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"result.json\""))
+script = "\"extracted/*\""))
   
 )
 
@@ -88,14 +84,17 @@ script = "\"result.json\""))
 
 ```{r 5 create tool object, eval=run.mode=="push"}
 
+
 tool <- Tool(
-id = "genotype-check", 
-label = "compare bam genotypes",
+id = "tar_extract",
+label = "tar_extract",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "compareBamGenotypes.pl -o ./ -j genotype_check_result.json",
+baseCommand = "mkdir extracted && tar -xvf",
 stdout = "std.out",
 inputs = inputs,
-outputs = outputs)
+arguments = CCBList(CommandLineBinding(position = 2, prefix = "-C", valueFrom = list("\"extracted\""))),
+outputs = outputs
+)
 
 
 ```
@@ -104,7 +103,7 @@ outputs = outputs)
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 
-p$app_add("genotype-check", tool)
+p$app_add("tar_extract", tool)
 
 
 ```

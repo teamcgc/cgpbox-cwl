@@ -5,7 +5,7 @@ require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
 options(max.print = "99"); opts_knit$set(width = 99)
 opts_chunk$set(cache=FALSE, tidy=FALSE)
 
-source("~/cgpbox_cwl_auth.R")
+source("~/sbg_auth.R")
 
 ```
 
@@ -19,26 +19,27 @@ https://github.com/cancerit/BRASS
 
 ```{sh base command, eval=FALSE}
 
+CPU=`grep -c ^processor /proc/cpuinfo` && # I want to use rabix to get CPU
 brass.pl 
+-t [tumour bam]
+-n [normal wildtype bam]
+-g [genome reference]
+-ss [ascat *.samplestatistics.txt array]
 -j 4 
 -k 4 
 -c $CPU
--d $REF_BASE/brass/HiDepth.bed.gz
--f $REF_BASE/brass/brass_np.groups.gz
--g $REF_BASE/genome.fa
--s '$SPECIES' 
--as $ASSEMBLY 
--pr $PROTOCOL 
+-s HUMAN 
+-as GRCh37 
+-pr WGS
 -pl ILLUMINA
--g_cache $REF_BASE/vagrent/vagrent.cache.gz
--vi $REF_BASE/brass/viral.1.1.genomic.fa
--mi $REF_BASE/brass/all_ncbi_bacteria.20150703
--b $REF_BASE/brass/500bp_windows.gc.bed.gz
--ct $REF_BASE/brass/CentTelo.tsv
--t $BAM_MT_TMP
--n $BAM_WT_TMP
--ss /datastore/output/${NAME_MT}_vs_${NAME_WT}/ascat/*.samplestatistics.txt
--o /datastore/output/${NAME_MT}_vs_${NAME_WT}/brass
+-d brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz
+-f brass-brass_np.groups.gz
+-g_cache vagrent_Homo_sapiens.GRCh37.75.vagrent.cache.gz
+-vi brass-viral.1.1.genomic.fa
+-mi brass-all_ncbi_bacteria.20150703
+-b brass-hs37d5_500bp_windows.gc.bed.gz
+-ct brass-Human.GRCh37.CentTelo.tsv
+-o ./brass_output
 ```
 
 <br><br><br><br>
@@ -62,15 +63,15 @@ Need to add more inputs here.
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "hi_depth_bed", label = "hi_depth_bed", description = "hi_depth_bed", type = "File", prefix = "-d"),
-  
-input(id = "brass_np_groups", label = "brass_np_groups", description = "brass_np_groups", type = "File", prefix = "-f"),
+input(id = "tumour_bam", label = "tumour_bam", description = "tumour bam", type = "File", prefix = "-t"),
 
-input(id = "reference", label = "reference", description = "reference", type = "File", prefix = "-g"),
-  
 input(id = "normal_bam", label = "normal_bam", description = "wildtype bam", type = "File", prefix = "-n"),
 
-input(id = "tumour_bam", label = "tumour_bam", description = "tumour bam", type = "File", prefix = "-t")
+input(id = "genome_reference", label = "genome_reference", description = "genome_reference", type = "File", prefix = "-g"),
+  
+input(id = "ascat_sample_statistics", label = "ascat_sample_statistics", description = "ascat_sample_statistics", type = "File...", prefix = "-ss"),
+  
+input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", description = "extracted reference files", type = "File...", stageInput = "link")
   
 )
 
@@ -89,10 +90,10 @@ glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
 output(id = "brass_output", label = "brass_output", 
-description = "brass_output", type = "File",
+description = "brass_output", type = "File...",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.bed\""))
+script = "\"brass_output/*\""))
   
 )
 
@@ -109,7 +110,7 @@ tool <- Tool(
 id = "BRASS", 
 label = "BRASS",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "brass.pl",
+baseCommand = "mkdir brass_output && CPU=`grep -c ^processor /proc/cpuinfo` && brass.pl -j 4 -k 4 -c $CPU -s HUMAN -as GRCh37 -pr WGS -pl ILLUMINA -d brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -f brass-brass_np.groups.gz -g_cache vagrent_Homo_sapiens.GRCh37.75.vagrent.cache.gz -vi brass-viral.1.1.genomic.fa -mi brass-all_ncbi_bacteria.20150703 -b brass-hs37d5_500bp_windows.gc.bed.gz -ct brass-Human.GRCh37.CentTelo.tsv -o ./brass_output",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)
