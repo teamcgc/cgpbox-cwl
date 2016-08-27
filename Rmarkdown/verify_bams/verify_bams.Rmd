@@ -14,8 +14,7 @@ First step in the cgpbox pipeline.  Generates useful stats on the wildtype and m
 
 ## base command
 
-```{sh base command, eval=FALSE}
-
+```
 #if normal
 
 verifyBamHomChk.pl 
@@ -35,6 +34,17 @@ verifyBamHomChk.pl
 
 ```
 
+```{sh base command, eval=FALSE}
+
+verifyBamHomChk.pl
+-b [bam file]
+-a [option input - from ASCAT - called copynumber.caveman.csv] 
+-d 25
+-o ./
+-j result.json
+
+```
+
 <br><br><br><br>
 
 ## docker 
@@ -43,17 +53,6 @@ The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-## arguments
-
-```{r arguments, eval=run.mode=="skip"}
-arguments = list(
-  
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-b", stageInput = "link", secondaryFiles = ".bai")
-
-)
-
-```
-
 ## App ports {.tabset .tabset-fade .tabset-tabs}
 
 ### Inputs
@@ -61,8 +60,9 @@ input(id = "bam", label = "bam", description = "either wildtype or tumour bam", 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-b", stageInput = "link", secondaryFiles = list(".bai"))
+input(id = "bam", label = "bam", description = "either normal wildtype or tumour mutatantbam", type = "File", prefix = "-b", secondaryFiles = list(".bai")),
 
+input(id = "adjusted_copynumber_csv", label = "adjusted_copynumber_csv", description = "adjusted for caveman copynumber csv", type = "File", prefix = "-a")
 
 )
 

@@ -4,35 +4,57 @@ require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
 options(max.print = "99"); opts_knit$set(width = 99)
 opts_chunk$set(cache=FALSE, tidy=FALSE)
 
-source("~/cgpbox_cwl_auth.R")
+source("~/sbg_auth.R")
 
 ```
 
 <hr>
 
-CaVEMan actually needs the reference index and not the reference (?).  But we can attach the reference index as a secondary file to the reference and find the path that way.
+CaVEMan actually needs the reference index and not the reference (?).  But we can attach the reference index as a secondary file to the reference and find the path that way.  Need to ask Erik about this.
 
 It uses outputs from Pindel and ASCAT.
 
 ## base command
 
-```{sh base command, eval=FALSE}
+needs these 3 inputs from other tools
 
-caveman.pl
--r $REF_BASE/genome.fa.fai \
--ig $REF_BASE/caveman/HiDepth.tsv \
--b $REF_BASE/caveman/flagging \
--u $REF_BASE/caveman \
--s '$SPECIES' \
--sa $ASSEMBLY \
--t $CPU \
--st genomic \
+```
 -in /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.germline.bed  \
 -tc $TMP/tum.cn.bed \
 -nc $TMP/norm.cn.bed \
--tb $BAM_MT_TMP \
--nb $BAM_WT_TMP \
--o /datastore/output/${NAME_MT}_vs_${NAME_WT}/caveman
+```
+
+Prep ASCAT for caveman
+
+```
+echo -e "CaVEMan prep: `date`"
+
+set -x
+ASCAT_CN="/datastore/output/${NAME_MT}_vs_${NAME_WT}/ascat/$NAME_MT.copynumber.caveman.csv"
+perl -ne '@F=(split q{,}, $_)[1,2,3,4]; $F[1]-1; print join("\t",@F)."\n";' < $ASCAT_CN > $TMP/norm.cn.bed
+perl -ne '@F=(split q{,}, $_)[1,2,3,6]; $F[1]-1; print join("\t",@F)."\n";' < $ASCAT_CN > $TMP/tum.cn.bed
+set +x
+
+```
+
+```{sh base command, eval=FALSE}
+
+caveman.pl
+-tb [tumour mutant bam]
+-nb [normal wildtype bam]
+-r [genome reference index - genome.fa.fai]
+-in [pindel .germline.bed]
+-tc [tum.cn.bed - from ASCAT]
+-nc [norm.cn.bed - from ASCAT]
+-t $CPU
+-s HUMAN 
+-sa GRCh37 
+-st WGS
+-st genomic
+-ig caveman_ucscHiDepth_0.01_merge1000_no_exon.tsv
+-b ./ 
+-u ./
+-o caveman_output
 
 ```
 
@@ -62,16 +84,18 @@ input(id = "bam", label = "bam", description = "either wildtype or tumour bam", 
 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
-  
-input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-n"),
-  
-input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-t"),
-  
-input(id = "reference", label = "reference", description = "genome reference", type = "File", prefix = "-r"),
 
-input(id = "pindel_bed", label = "pindel_bed", description = "pindel_bed", type = "File", prefix = "-in")
+input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-tb"),
 
+input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-nb"),
+  
+input(id = "genome_reference_index", label = "genome_reference_index", description = "genome_reference_index", type = "File", prefix = "-r"),
 
+input(id = "pindel_germline_bed", label = "pindel_germline_bed", description = "pindel_germline_bed", type = "File", prefix = "-in"),
+  
+input(id = "ascat_tumour_cn_bed", label = "ascat_tumour_cn_bed", description = "ascat_tumour_cn_bed", type = "File", prefix = "-tc"),
+  
+input(id = "ascat_normal_cn_bed", label = "ascat_normal_cn_bed", description = "ascat_normal_cn_bed", type = "File", prefix = "-nc")
 
 )
 
@@ -110,7 +134,7 @@ tool <- Tool(
 id = "CaVEMan", 
 label = "CaVEMan",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "caveman.pl",
+baseCommand = "mkdir caveman_output && CPU=`grep -c ^processor /proc/cpuinfo` && caveman.pl -t $CPU -s HUMAN -sa GRCh37 -st WGS -st genomic -ig caveman_ucscHiDepth_0.01_merge1000_no_exon.tsv -b ./ -u ./ -o caveman_output",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)

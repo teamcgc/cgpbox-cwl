@@ -19,13 +19,12 @@ https://github.com/cancerit/BRASS
 
 ```{sh base command, eval=FALSE}
 
-CPU=`grep -c ^processor /proc/cpuinfo` && # I want to use rabix to get CPU
-brass.pl 
+brass.pl
 -t [tumour bam]
 -n [normal wildtype bam]
 -g [genome reference]
 -ss [ascat *.samplestatistics.txt array]
--j 4 
+-j 4
 -k 4 
 -c $CPU
 -s HUMAN 

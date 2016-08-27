@@ -5,7 +5,7 @@ require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
 options(max.print = "99"); opts_knit$set(width = 99)
 opts_chunk$set(cache=FALSE, tidy=FALSE)
 
-source("~/cgpbox_cwl_auth.R")
+source("~/sbg_auth.R")
 
 ```
 
@@ -18,21 +18,32 @@ https://github.com/cancerit/ascatNgs
 ## base command
 
 ```{sh base command, eval=FALSE}
+
 ascat.pl
--o /datastore/output/${NAME_MT}_vs_${NAME_WT}/ascat \
--t $BAM_MT_TMP \
--n $BAM_WT_TMP \
--sg $REF_BASE/ascat/SnpGcCorrections.tsv \
--r genome.fa
+-t [tumour bam]
+-n [normal wildtype bam]
+-r [genome reference]
+-c [cpu number]
+-rs 'HUMAN' 
+-ra GRCh37 
+-pr WGS
+-pl ILLUMINA
+-sg ascat_SnpGcCorrections.tsv
 -q 20
 -g L
--rs '$SPECIES'
--ra $ASSEMBLY
--pr $PROTOCOL
--pl ILLUMINA
--c $CPU
+-o ./ascat_output
 
 ```
+
+
+## Prep ASCAT for caveman
+
+```
+
+&& perl -ne '@F=(split q{,}, $_)[1,2,3,4]; $F[1]-1; print join("\t",@F)."\n";' < copynumber.caveman.csv > ./normal_cn.bed && perl -ne '@F=(split q{,}, $_)[1,2,3,6]; $F[1]-1; print join("\t",@F)."\n";' < copynumber.caveman.csv > ./tumour_cn.bed
+
+```
+
 
 <br><br><br><br>
 
@@ -42,22 +53,6 @@ The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-## arguments
-
-```{r arguments, eval=run.mode=="skip"}
-arguments = list(
-  
-input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-n"),
-  
-input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-t"),
-  
-input(id = "reference", label = "reference", description = "genome reference", type = "File", prefix = "-r"),
-
-input(id = "snp_gc_corrections", label = "SNP GC corrections file", description = "SNP GC corrections file", type = "File", prefix = "-sg")
-  
-)
-
-```
 
 ## App ports {.tabset .tabset-fade .tabset-tabs}
 
@@ -66,13 +61,14 @@ input(id = "snp_gc_corrections", label = "SNP GC corrections file", description 
 ```{r inputs, eval=run.mode=="push"}
 
 inputs = list(
-input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-n"),
   
-input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-t"),
+input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", secondaryFiles = list(".bai"), prefix = "-t"),
   
-input(id = "reference", label = "reference", description = "genome reference", type = "File", prefix = "-r"),
+input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", secondaryFiles = list(".bai"), prefix = "-n"),
 
-input(id = "snp_gc_corrections", label = "SNP GC corrections file", description = "SNP GC corrections file", type = "File", prefix = "-sg")
+input(id = "reference", label = "reference", description = "genome reference", type = "File", secondaryFiles = list(".fai"), prefix = "-r"),
+
+input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", description = "extracted reference files", type = "File", prefix = "-sg")
 
 )
 
@@ -90,14 +86,34 @@ metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
-output(id = "cnv_outputs", label = "cnv outputs", 
-description = "cnv_outputs", type = "File",
+output(id = "ascat_statistics", label = "ascat_statistics", 
+description = "ascat_statistics", type = "File...",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.csv\""))
+script = "\"ascat_output/*.samplestatistics.txt\"")),
   
+output(id = "tumour_copy_number_bed", label = "tumour_copy_number_bed", 
+description = "tumour_copy_number_bed", type = "File...",
+inheritMetadataFrom = "#tumour_bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"tumour_cn.bed\"")),
+  
+output(id = "normal_copy_number_bed", label = "normal_copy_number_bed", 
+description = "normal_copy_number_bed", type = "File...",
+inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"normal_cn.bed\""))
+ 
 )
 
+
+```
+
+## Add on scripts {.tabset .tabset-fade .tabset-tabs}
+
+```{r add on scripts, eval=run.mode=="push"}
+
+prep_for_caveman_sh = fileDef(name = "prep_for_caveman.sh", content = read_file("prep_for_caveman.sh"))
 
 ```
 
@@ -111,9 +127,18 @@ tool <- Tool(
 id = "ASCAT", 
 label = "ASCAT",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "ascat.pl -o ./",
+requirements = requirements(prep_for_caveman_sh),
+
+  
+  
+baseCommand = "mkdir ascat_outputs && CPU=`grep -c ^processor /proc/cpuinfo` && OUT_DIR=`pwd` && ascat.pl -c $CPU -rs 'Human' -ra NCBI37 -pr WGS -pl ILLUMINA -q 20 -g L -o $OUT_DIR",
+
 stdout = "std.out",
+
 inputs = inputs,
+  
+# arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& sh prep_for_caveman.sh\""))), 
+  
 outputs = outputs)
 
 
@@ -127,4 +152,3 @@ p$app_add("ASCAT", tool)
 
 
 ```
-

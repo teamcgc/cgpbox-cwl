@@ -4,7 +4,7 @@ require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
 options(max.print = "99"); opts_knit$set(width = 99)
 opts_chunk$set(cache=FALSE, tidy=FALSE)
 
-source("~/cgpbox_cwl_auth.R")
+source("~/sbg_auth.R")
 
 ```
 
@@ -19,21 +19,21 @@ https://github.com/cancerit/cgpPindel
 ```{sh base command, eval=FALSE}
 
 pindel.pl
--o /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel
--t $BAM_MT_TMP
--n $BAM_WT_TMP
--r $REF_BASE/genome.fa
--s $REF_BASE/pindel/simpleRepeats.bed.gz
--f $REF_BASE/pindel/genomicRules.lst
--g $REF_BASE/pindel/indelCoding.bed.gz
--u $REF_BASE/pindel/pindel_np.gff3.gz
--sf $REF_BASE/pindel/softRules.lst
--b $REF_BASE/brass/HiDepth.bed.gz
--st $PROTOCOL
--as $ASSEMBLY
--sp '$SPECIES'
--e NC_007605,hs37d5,GL%
+-t [tumour mutant bam]
+-n [normal wildtype bam]
+-r [genome reference]
 -c $CPU
+-sp HUMAN 
+-as GRCh37 
+-st WGS
+-e NC_007605,hs37d5,GL%
+-s pindel_simpleRepeats.bed.gz
+-f pindel_genomicRules.lst
+-g pindel_human.GRCh37.indelCoding.bed.gz
+-u pindel_pindel_np.gff3.gz
+-sf pindel_softRules.lst
+-b brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz
+-o ./pindel_output
 
 ```
 
@@ -52,16 +52,15 @@ The docker conatiner is
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "normal_bam", label = "normal_bam", description = "wildtype bam", type = "File", prefix = "-n"),
 
-input(id = "tumour_bam", label = "tumour_bam", description = "tumour bam", type = "File", prefix = "-t"),
+input(id = "tumour_bam", label = "tumour_bam", description = "tumour bam", type = "File", secondaryFiles = list(".bai"), prefix = "-t"),
 
-input(id = "reference", label = "reference", description = "reference", type = "File", prefix = "-r"),
+input(id = "normal_bam", label = "normal_bam", description = "wildtype bam", type = "File", secondaryFiles = list(".bai"), prefix = "-n"),
 
-input(id = "pindel_reference_archive", label = "pindel_reference_archive", description = "pindel_reference_archive", type = "File", prefix = "-pin"),
+input(id = "reference", label = "reference", description = "reference", type = "File", secondaryFiles = list(".fai"), prefix = "-r"),
   
-input(id = "hi_depth_bed", label = "hi_depth_bed", description = "hi_depth_bed from brass references", type = "File", prefix = "-b")
-  
+input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", description = "extracted reference files", type = "File...", stageInput = "link")
+
 )
 
 ```
@@ -99,7 +98,7 @@ tool <- Tool(
 id = "pindel", 
 label = "pindel",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "pindel.pl",
+baseCommand = "mkdir pindel_output && CPU=`grep -c ^processor /proc/cpuinfo` && pindel.pl -c $CPU -sp HUMAN -as GRCh37 -st WGS -e NC_007605,hs37d5,GL% -s pindel_simpleRepeats.bed.gz -f pindel_genomicRules.lst -g pindel_human.GRCh37.indelCoding.bed.gz -u pindel_pindel_np.gff3.gz -sf pindel_softRules.lst -b brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -o ./pindel_output",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)

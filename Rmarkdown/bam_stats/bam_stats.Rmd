@@ -5,7 +5,7 @@ require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
 options(max.print = "99"); opts_knit$set(width = 99)
 opts_chunk$set(cache=FALSE, tidy=FALSE)
 
-source("~/cgpbox_cwl_auth.R")
+source("~/sbg_auth.R")
 
 ```
 
