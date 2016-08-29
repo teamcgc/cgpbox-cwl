@@ -109,7 +109,7 @@ tool <- Tool(
 id = "BRASS", 
 label = "BRASS",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "mkdir brass_output && CPU=`grep -c ^processor /proc/cpuinfo` && brass.pl -j 4 -k 4 -c $CPU -s HUMAN -as GRCh37 -pr WGS -pl ILLUMINA -d brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -f brass-brass_np.groups.gz -g_cache vagrent_Homo_sapiens.GRCh37.75.vagrent.cache.gz -vi brass-viral.1.1.genomic.fa -mi brass-all_ncbi_bacteria.20150703 -b brass-hs37d5_500bp_windows.gc.bed.gz -ct brass-Human.GRCh37.CentTelo.tsv -o ./brass_output",
+baseCommand = "CPU=`grep -c ^processor /proc/cpuinfo` && brass.pl -j 4 -k 4 -c $CPU -s HUMAN -as GRCh37 -pr WGS -pl ILLUMINA -d brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -f brass-brass_np.groups.gz -g_cache vagrent_Homo_sapiens.GRCh37.75.vagrent.cache.gz -vi brass-viral.1.1.genomic.fa -mi brass-all_ncbi_bacteria.20150703 -b brass-hs37d5_500bp_windows.gc.bed.gz -ct brass-Human.GRCh37.CentTelo.tsv -o ./brass_output",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)
