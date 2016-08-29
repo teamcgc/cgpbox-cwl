@@ -29,18 +29,6 @@ The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-
-## arguments
-
-```{r arguments, eval=run.mode=="push"}
-arguments = list(
-  
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
-
-)
-
-```
-
 ## App ports {.tabset .tabset-fade .tabset-tabs}
 
 ### Inputs
@@ -48,7 +36,7 @@ input(id = "bam", label = "bam", description = "either wildtype or tumour bam", 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
+input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", secondaryFiles = list(".bai"), prefix = "-i")
 
 )
 
@@ -87,7 +75,7 @@ tool <- Tool(
 id = "bam-stats", 
 label = "CGP bam stats",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "bam_stats",
+baseCommand = "bam_stats -o bam_file.bas",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)

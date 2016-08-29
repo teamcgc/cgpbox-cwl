@@ -68,7 +68,7 @@ input(id = "normal_bam", label = "normal_bam", description = "normal wildtype ba
 
 input(id = "reference", label = "reference", description = "genome reference", type = "File", secondaryFiles = list(".fai"), prefix = "-r"),
 
-input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", description = "extracted reference files", type = "File", prefix = "-sg")
+input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", description = "extracted reference files", type = "File...", stageInput = "link")
 
 )
 
@@ -103,7 +103,7 @@ description = "normal_copy_number_bed", type = "File...",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"normal_cn.bed\""))
- 
+
 )
 
 
@@ -129,15 +129,13 @@ label = "ASCAT",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
 requirements = requirements(prep_for_caveman_sh),
 
-  
-  
-baseCommand = "mkdir ascat_outputs && CPU=`grep -c ^processor /proc/cpuinfo` && OUT_DIR=`pwd` && ascat.pl -c $CPU -rs 'Human' -ra NCBI37 -pr WGS -pl ILLUMINA -q 20 -g L -o $OUT_DIR",
+baseCommand = "CPU=`grep -c ^processor /proc/cpuinfo` && ascat.pl -c $CPU -rs Human -ra NCBI37 -pr WGS -pl ILLUMINA -sg ascat_SnpGcCorrections.tsv -q 20 -g L -o ascat_output",
 
 stdout = "std.out",
 
 inputs = inputs,
   
-# arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& sh prep_for_caveman.sh\""))), 
+arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& sh prep_for_caveman.sh\""))), 
   
 outputs = outputs)
 

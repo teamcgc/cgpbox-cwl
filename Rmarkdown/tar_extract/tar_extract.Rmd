@@ -67,11 +67,11 @@ metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
-output(id = "extracted_files", label = "brass_output", 
-description = "extracted_files", type = "File...",
-inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+output(id = "extracted_files", label = "extracted_files", 
+description = "extracted_files", type = "File...", 
+metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"extracted/*\""))
+script = "\"extracted/cgpbox_ref_2/*\""))
   
 )
 

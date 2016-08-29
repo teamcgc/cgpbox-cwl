@@ -85,11 +85,11 @@ input(id = "bam", label = "bam", description = "either wildtype or tumour bam", 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
 
-input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-tb"),
+input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", secondaryFiles = list(".bai"), prefix = "-tb"),
 
-input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", prefix = "-nb"),
+input(id = "normal_bam", label = "normal_bam", description = "normal wildtype bam", type = "File", secondaryFiles = list(".bai"), prefix = "-nb"),
   
-input(id = "genome_reference_index", label = "genome_reference_index", description = "genome_reference_index", type = "File", prefix = "-r"),
+input(id = "genome_reference", label = "genome_reference", description = "genome_reference", type = "File", secondaryFiles = list(".fai"), valueFrom = list("$self.path+\".fai\""), prefix = "-r"),
 
 input(id = "pindel_germline_bed", label = "pindel_germline_bed", description = "pindel_germline_bed", type = "File", prefix = "-in"),
   
@@ -117,7 +117,7 @@ output(id = "caveman_output", label = "caveman_output",
 description = "caveman_output", type = "File",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.bedpe\""))
+script = "\"caveman_output/*.bedpe\""))
   
 )
 
@@ -134,7 +134,7 @@ tool <- Tool(
 id = "CaVEMan", 
 label = "CaVEMan",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "mkdir caveman_output && CPU=`grep -c ^processor /proc/cpuinfo` && caveman.pl -t $CPU -s HUMAN -sa GRCh37 -st WGS -st genomic -ig caveman_ucscHiDepth_0.01_merge1000_no_exon.tsv -b ./ -u ./ -o caveman_output",
+baseCommand = "CPU=`grep -c ^processor /proc/cpuinfo` && caveman.pl -t $CPU -s HUMAN -sa GRCh37 -st WGS -st genomic -ig caveman_ucscHiDepth_0.01_merge1000_no_exon.tsv -b ./ -u ./ -o caveman_output",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)

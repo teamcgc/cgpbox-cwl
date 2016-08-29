@@ -54,7 +54,6 @@ input(id = "normal_bam", label = "normal_bam", description = "normal wildtype ba
   
 input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam", type = "File", prefix = "-tb", stageInput = "link", secondaryFiles = list(".bai"))
   
-
 )
 
 ```
@@ -72,10 +71,10 @@ glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
 output(id = "result", label = "genotype comparison", 
-description = "genotype comarison results", type = "File",
-inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+description = "genotype comarison results", type = "File...",
+inheritMetadataFrom = "#tumour_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"result.json\""))
+script = "\"genotype_check/*.json\""))
   
 )
 
@@ -92,7 +91,7 @@ tool <- Tool(
 id = "genotype-check", 
 label = "compare bam genotypes",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "compareBamGenotypes.pl -o ./ -j genotype_check_result.json",
+baseCommand = "compareBamGenotypes.pl -o genotype_check -j genotype_check/genotype_check_result.json",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)

@@ -61,10 +61,11 @@ The docker conatiner is
 inputs = list(
   
 input(id = "bam", label = "bam", description = "either normal wildtype or tumour mutatantbam", type = "File", prefix = "-b", secondaryFiles = list(".bai")),
-
-input(id = "adjusted_copynumber_csv", label = "adjusted_copynumber_csv", description = "adjusted for caveman copynumber csv", type = "File", prefix = "-a")
+  
+input(id = "ascat_adjusted_copynumber_csv", label = "ascat_adjusted_copynumber_csv", description = "ascat adjusted for caveman copynumber csv", type = "File", valueFrom = list("{if ($job.inputs.bam.metadata.sample_type == \"Tumor\"){return $self.path;}}"), prefix = "-a")
 
 )
+
 
 ```
 
@@ -84,7 +85,7 @@ output(id = "verify_bam_result", label = "verify_bam_results",
 description = "verify bam results", type = "File",
 inheritMetadataFrom = "#bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"result.json\""))
+script = "\"verify_bam/verify_bam_result.json\""))
   
 )
 
@@ -95,19 +96,33 @@ script = "\"result.json\""))
   
 ### Tool object
 
+need to add some logic for -a adjusted copy number because it is only needed if it is the tumour sample.
+
+```
+-a /datastore/output/${NAME_MT}_vs_${NAME_WT}/ascat/${NAME_MT}.copynumber.caveman.csv
+
+arguments = CCBList(CommandLineBinding(position = 2, prefix = "-a", valueFrom = list("\"if $self.metadata.sample_type = \"Tumor\" then \""))),
+
+{if ($job.inputs.bam.metadata.sample_type == "Tumor") {command_line_arg = "ab.copynumber.caveman.csv";} else {command_line_arg = "";} return command_line_arg}
+
+{if ($job.inputs.bam.metadata.sampleType == "Tumor") {command_line_arg = "ab.copynumber.caveman.csv";} else {command_line_arg = "";} return command_line_arg}
+
+```
+
 ```{r 5 create tool object, eval=run.mode=="push"}
 
 tool <- Tool(
 id = "verify_bam", 
-label = "verify_bams",
+label = "verify_bam",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "verifyBamHomChk.pl -d 25 -o ./ -j verify_bam_result.json",
+baseCommand = "verifyBamHomChk.pl -d 25 -o verify_bam -j verify_bam/verify_bam_result.json",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)
 
 
 ```
+
 
 ### Push app to sbg platform
 

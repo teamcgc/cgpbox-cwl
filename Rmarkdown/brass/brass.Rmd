@@ -88,8 +88,8 @@ metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
-output(id = "brass_output", label = "brass_output", 
-description = "brass_output", type = "File...",
+output(id = "brass_output", label = "brass_sv_output", 
+description = "brass output", type = "File...",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"brass_output/*\""))

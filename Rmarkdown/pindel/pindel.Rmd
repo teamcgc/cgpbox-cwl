@@ -77,11 +77,17 @@ metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"*.{out}\"")),
   
-output(id = "pindel_bed", label = "pindel_bed", 
-description = "pindel_bed outputkl", type = "File",
-inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+output(id = "pindel_germline_bed", label = "pindel_germline_bed", 
+description = "pindel_germline_bed output", type = "File",
+inheritMetadataFrom = "#tumour_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.germline.bed\""))
+script = "\"pindel_output/*.germline.bed\"")),
+
+output(id = "pindel_flagged_vcf", label = "pindel_flagged_vcf", 
+description = "pindel_flagged_vcf", type = "File",
+inheritMetadataFrom = "#tumour_bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"pindel_output/*.flagged.vcf.gz\""), secondaryFiles = list(".tbi"))
   
 )
 
@@ -98,7 +104,7 @@ tool <- Tool(
 id = "pindel", 
 label = "pindel",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
-baseCommand = "mkdir pindel_output && CPU=`grep -c ^processor /proc/cpuinfo` && pindel.pl -c $CPU -sp HUMAN -as GRCh37 -st WGS -e NC_007605,hs37d5,GL% -s pindel_simpleRepeats.bed.gz -f pindel_genomicRules.lst -g pindel_human.GRCh37.indelCoding.bed.gz -u pindel_pindel_np.gff3.gz -sf pindel_softRules.lst -b brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -o ./pindel_output",
+baseCommand = "CPU=`grep -c ^processor /proc/cpuinfo` && pindel.pl -c $CPU -sp HUMAN -as GRCh37 -st WGS -e NC_007605,hs37d5,GL% -s pindel_simpleRepeats.bed.gz -f pindel_genomicRules.lst -g pindel_human.GRCh37.indelCoding.bed.gz -u pindel_pindel_np.gff3.gz -sf pindel_softRules.lst -b brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -o pindel_output",
 stdout = "std.out",
 inputs = inputs,
 outputs = outputs)
