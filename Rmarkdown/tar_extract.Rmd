@@ -13,7 +13,7 @@ source("~/sbg_auth.R")
 
 Extract reference files
 
-## base command
+### base command
 
 ```{sh base command, eval=FALSE}
 
@@ -24,15 +24,13 @@ mkdir extraced && tar -xvf [file] -C extracted
 
 <br><br><br><br>
 
-## docker 
+### docker 
 
 The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-## arguments
-
-## arguments
+### arguments
 
 ```{r arguments, eval=run.mode=="skip"}
 arguments = list(value = "extracted", prefix = "-C")
@@ -40,9 +38,9 @@ arguments = list(value = "extracted", prefix = "-C")
 
 
 ```
-## App ports {.tabset .tabset-fade .tabset-tabs}
+### App ports {.tabset .tabset-fade .tabset-tabs}
 
-### Inputs
+#### Inputs
 
 Need to add more inputs here.
 
@@ -55,7 +53,7 @@ input(id = "tar_file", label = "tar_file", description = "tar_file", type = "Fil
 
 ```
 
-### Outputs
+#### Outputs
 
 ```{r output, eval = run.mode=="push"}
 
@@ -64,8 +62,7 @@ outputs = list(
 output(id = "std_out", label = "std_out", 
 description = "standard output", type = "File...",
 metadata = list(org = "cgp"),
-glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.{out}\"")),
+glob = "\"std.out\""),
   
 output(id = "extracted_files", label = "extracted_files", 
 description = "extracted_files", type = "File...", 
@@ -78,9 +75,9 @@ script = "\"extracted/cgpbox_ref_2/*\""))
 
 ```
 
-## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
   
-### Tool object
+#### Tool object
 
 ```{r 5 create tool object, eval=run.mode=="push"}
 
@@ -99,7 +96,7 @@ outputs = outputs
 
 ```
 
-### Push app to sbg platform
+#### Push app to sbg platform
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 

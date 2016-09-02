@@ -1,0 +1,134 @@
+
+```{r include = FALSE}
+require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
+
+options(max.print = "99"); opts_knit$set(width = 99)
+opts_chunk$set(cache=FALSE, tidy=FALSE)
+
+source("~/sbg_auth.R")
+
+```
+
+<hr>
+
+Prep ASCAT output for caveman
+
+### base command
+
+```{sh base command, eval=FALSE}
+
+sh prep_for_caveman.sh [name of file minus extension]
+
+```
+
+
+### Prep ASCAT for caveman
+
+```
+
+&& perl -ne '@F=(split q{,}, $_)[1,2,3,4]; $F[1]-1; print join("\t",@F)."\n";' < copynumber.caveman.csv > ./normal_cn.bed && perl -ne '@F=(split q{,}, $_)[1,2,3,6]; $F[1]-1; print join("\t",@F)."\n";' < copynumber.caveman.csv > ./tumour_cn.bed
+
+```
+
+
+<br><br><br><br>
+
+### docker 
+
+The docker conatiner is
+
+``` cgrlab/cgpbox_dev:develop ```
+
+
+### App ports {.tabset .tabset-fade .tabset-tabs}
+
+#### Inputs
+
+```{r inputs, eval=run.mode=="push"}
+
+inputs = list(
+  
+input(id = "caveman_csv", label = "caveman_csv", description = "caveman_csv", type = "File", position = 1)
+  
+
+
+)
+
+```
+
+
+#### arguments
+
+```{r arguments, eval=run.mode=="push"}
+
+arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& ls -lR\"")))
+
+```
+
+#### Outputs
+
+```{r output, eval = run.mode=="push"}
+
+outputs = list(
+
+output(id = "std_out", label = "std_out", 
+description = "standard output", type = "File...",
+metadata = list(org = "cgp"),
+glob = "\"std.out\""),
+  
+output(id = "ascat_tumour_copy_number_bed", label = "ascat_tumour_copy_number_bed", 
+description = "ascat_tumour_copy_number_bed", type = "File",
+inheritMetadataFrom = "#tumour_bam", metadata = list(org = "cgp"),
+glob = "\"ascat_tumour_cn.bed\""),
+  
+output(id = "ascat_normal_copy_number_bed", label = "ascat_normal_copy_number_bed", 
+description = "ascat_normal_copy_number_bed", type = "File",
+inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+glob = "\"ascat_normal_cn.bed\"")
+)
+
+
+```
+
+### Add on scripts {.tabset .tabset-fade .tabset-tabs}
+
+```{r add on scripts, eval=run.mode=="push"}
+
+prep_for_caveman_sh = fileDef(name = "prep_for_caveman.sh", content = read_file("prep_for_caveman.sh"))
+
+```
+
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+  
+#### Tool object
+
+```{r 5 create tool object, eval=run.mode=="push"}
+
+tool <- Tool(
+id = "prep_for_caveman", 
+label = "prep_for_caveman",
+hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
+requirements = requirements(prep_for_caveman_sh),
+
+baseCommand = "sh prep_for_caveman.sh",
+
+stdout = "std.out",
+
+inputs = inputs,
+  
+arguments = arguments,
+  
+outputs = outputs)
+
+
+
+```
+
+#### Push app to sbg platform
+
+```{r 6 push app to sbg, eval=destination=="platform"}
+
+project$app_add("prep_for_caveman", tool)
+
+
+```

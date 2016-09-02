@@ -14,7 +14,7 @@ Cancer Genome Project Insertion/Deletion detection pipeline based around Pindel
 
 https://github.com/cancerit/cgpPindel
 
-## base command
+### base command
 
 ```{sh base command, eval=FALSE}
 
@@ -39,15 +39,15 @@ pindel.pl
 
 <br><br><br><br>
 
-## docker 
+### docker 
 
 The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-## App ports {.tabset .tabset-fade .tabset-tabs}
+### App ports {.tabset .tabset-fade .tabset-tabs}
 
-### Inputs
+#### Inputs
 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
@@ -65,7 +65,16 @@ input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", descripti
 
 ```
 
-### Outputs
+
+#### arguments
+
+```{r arguments, eval=run.mode=="push"}
+
+arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& ls -lR\"")))
+
+```
+
+#### Outputs
 
 ```{r output, eval = run.mode=="push"}
 
@@ -74,8 +83,7 @@ outputs = list(
 output(id = "std_out", label = "std_out", 
 description = "standard output", type = "File...",
 metadata = list(org = "cgp"),
-glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.{out}\"")),
+glob = "\"std.out\""),
   
 output(id = "pindel_germline_bed", label = "pindel_germline_bed", 
 description = "pindel_germline_bed output", type = "File",
@@ -94,9 +102,9 @@ script = "\"pindel_output/*.flagged.vcf.gz\""), secondaryFiles = list(".tbi"))
 
 ```
 
-## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
   
-### Tool object
+#### Tool object
 
 ```{r 5 create tool object, eval=run.mode=="push"}
 
@@ -107,16 +115,17 @@ hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(100
 baseCommand = "CPU=`grep -c ^processor /proc/cpuinfo` && pindel.pl -c $CPU -sp HUMAN -as GRCh37 -st WGS -e NC_007605,hs37d5,GL% -s pindel_simpleRepeats.bed.gz -f pindel_genomicRules.lst -g pindel_human.GRCh37.indelCoding.bed.gz -u pindel_pindel_np.gff3.gz -sf pindel_softRules.lst -b brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -o pindel_output",
 stdout = "std.out",
 inputs = inputs,
+arguments = arguments,
 outputs = outputs)
 
 
 ```
 
-### Push app to sbg platform
+#### Push app to sbg platform
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 
-p$app_add("pindel", tool)
+project$app_add("pindel", tool)
 
 
 ```

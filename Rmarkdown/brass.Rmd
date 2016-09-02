@@ -15,7 +15,7 @@ Breakpoints via assembly - Identifies breaks and attempts to assemble rearrangem
 
 https://github.com/cancerit/BRASS
 
-## base command
+### base command
 
 ```{sh base command, eval=FALSE}
 
@@ -43,30 +43,28 @@ brass.pl
 
 <br><br><br><br>
 
-## docker 
+### docker 
 
 The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-## arguments
+### App ports {.tabset .tabset-fade .tabset-tabs}
 
-No additional arguments
-
-## App ports {.tabset .tabset-fade .tabset-tabs}
-
-### Inputs
+#### Inputs
 
 Need to add more inputs here.
 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
   
-input(id = "tumour_bam", label = "tumour_bam", description = "tumour bam", type = "File", prefix = "-t"),
+input(id = "tumour_bam", label = "tumour_bam", description = "tumour bam", type = "File", stageInput = "link", secondaryFiles = list(".bai"), valueFrom = list("{return $self.name}"), prefix = "-t"),
 
-input(id = "normal_bam", label = "normal_bam", description = "wildtype bam", type = "File", prefix = "-n"),
+input(id = "normal_bam", label = "normal_bam", description = "wildtype bam", type = "File", stageInput = "link", secondaryFiles = list(".bai"), valueFrom = list("{return $self.name}"), prefix = "-n"),
 
-input(id = "genome_reference", label = "genome_reference", description = "genome_reference", type = "File", prefix = "-g"),
+input(id = "genome_reference", label = "genome_reference", description = "genome_reference", type = "File", secondaryFiles = list(".fai"), prefix = "-g"),
+  
+input(id = "bam_stats", label = "bam_stats", description = "bam stats", type = "File...", stageInput = "link"),  
   
 input(id = "ascat_sample_statistics", label = "ascat_sample_statistics", description = "ascat_sample_statistics", type = "File...", prefix = "-ss"),
   
@@ -76,7 +74,16 @@ input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", descripti
 
 ```
 
-### Outputs
+
+#### arguments
+
+```{r arguments, eval=run.mode=="push"}
+
+arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& ls -lR\"")))
+
+```
+
+#### Outputs
 
 ```{r output, eval = run.mode=="push"}
 
@@ -85,23 +92,28 @@ outputs = list(
 output(id = "std_out", label = "std_out", 
 description = "standard output", type = "File...",
 metadata = list(org = "cgp"),
-glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.{out}\"")),
+glob = "\"std.out\""),
   
-output(id = "brass_output", label = "brass_sv_output", 
-description = "brass output", type = "File...",
+output(id = "brass_sv_bedpe", label = "brass_sv_bedpe", 
+description = "brass_sv_bedpe", type = "File",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"brass_output/*\""))
+script = "\"brass_output/*bedpe.gz\""), secondaryFiles = list(".tbi")),
+  
+output(id = "brass_vcf", label = "brass_vcf", 
+description = "brass_vcf", type = "File...",
+inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"brass_output/*vcf*\""))
   
 )
 
 
 ```
 
-## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
   
-### Tool object
+#### Tool object
 
 ```{r 5 create tool object, eval=run.mode=="push"}
 
@@ -110,18 +122,16 @@ id = "BRASS",
 label = "BRASS",
 hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
 baseCommand = "CPU=`grep -c ^processor /proc/cpuinfo` && brass.pl -j 4 -k 4 -c $CPU -s HUMAN -as GRCh37 -pr WGS -pl ILLUMINA -d brass-ucscHiDepth_0.01_mrg1000_no_exon_coreChrs.bed.gz -f brass-brass_np.groups.gz -g_cache vagrent_Homo_sapiens.GRCh37.75.vagrent.cache.gz -vi brass-viral.1.1.genomic.fa -mi brass-all_ncbi_bacteria.20150703 -b brass-hs37d5_500bp_windows.gc.bed.gz -ct brass-Human.GRCh37.CentTelo.tsv -o ./brass_output",
-stdout = "std.out",
-inputs = inputs,
-outputs = outputs)
+stdout = "std.out", inputs = inputs, arguments = arguments, outputs = outputs)
 
 
 ```
 
-### Push app to sbg platform
+#### Push app to sbg platform
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 
-p$app_add("BRASS", tool)
+project$app_add("BRASS", tool)
 
 
 ```

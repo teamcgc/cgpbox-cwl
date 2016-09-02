@@ -15,7 +15,7 @@ Somatic copy number analysis using paired end wholegenome sequencing
 
 https://github.com/cancerit/ascatNgs
 
-## base command
+### base command
 
 ```{sh base command, eval=FALSE}
 
@@ -36,7 +36,7 @@ ascat.pl
 ```
 
 
-## Prep ASCAT for caveman
+### Prep ASCAT for caveman
 
 ```
 
@@ -47,16 +47,16 @@ ascat.pl
 
 <br><br><br><br>
 
-## docker 
+### docker 
 
 The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
 
-## App ports {.tabset .tabset-fade .tabset-tabs}
+### App ports {.tabset .tabset-fade .tabset-tabs}
 
-### Inputs
+#### Inputs
 
 ```{r inputs, eval=run.mode=="push"}
 
@@ -74,7 +74,16 @@ input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", descripti
 
 ```
 
-### Outputs
+
+#### arguments
+
+```{r arguments, eval=run.mode=="push"}
+
+arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& ls -lR\"")))
+
+```
+
+#### Outputs
 
 ```{r output, eval = run.mode=="push"}
 
@@ -83,8 +92,7 @@ outputs = list(
 output(id = "std_out", label = "std_out", 
 description = "standard output", type = "File...",
 metadata = list(org = "cgp"),
-glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.{out}\"")),
+glob = "\"std.out\""),
   
 output(id = "ascat_statistics", label = "ascat_statistics", 
 description = "ascat_statistics", type = "File...",
@@ -92,24 +100,17 @@ inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"ascat_output/*.samplestatistics.txt\"")),
   
-output(id = "tumour_copy_number_bed", label = "tumour_copy_number_bed", 
-description = "tumour_copy_number_bed", type = "File...",
-inheritMetadataFrom = "#tumour_bam", metadata = list(org = "cgp"),
-glob = Expression(engine = "#cwl-js-engine",
-script = "\"tumour_cn.bed\"")),
-  
-output(id = "normal_copy_number_bed", label = "normal_copy_number_bed", 
-description = "normal_copy_number_bed", type = "File...",
+output(id = "copynumber_caveman", label = "copynumber_caveman", 
+description = "copy_number_caveman", type = "File...",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"normal_cn.bed\""))
-
+script = "\"ascat_output/*copynumber.caveman.csv\""))
 )
 
 
 ```
 
-## Add on scripts {.tabset .tabset-fade .tabset-tabs}
+### Add on scripts {.tabset .tabset-fade .tabset-tabs}
 
 ```{r add on scripts, eval=run.mode=="push"}
 
@@ -117,9 +118,9 @@ prep_for_caveman_sh = fileDef(name = "prep_for_caveman.sh", content = read_file(
 
 ```
 
-## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
   
-### Tool object
+#### Tool object
 
 ```{r 5 create tool object, eval=run.mode=="push"}
 
@@ -135,18 +136,18 @@ stdout = "std.out",
 
 inputs = inputs,
   
-arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& sh prep_for_caveman.sh\""))), 
+arguments = arguments,
   
 outputs = outputs)
 
 
 ```
 
-### Push app to sbg platform
+#### Push app to sbg platform
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 
-p$app_add("ASCAT", tool)
+project$app_add("ASCAT", tool)
 
 
 ```

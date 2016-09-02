@@ -14,28 +14,7 @@ CaVEMan actually needs the reference index and not the reference (?).  But we ca
 
 It uses outputs from Pindel and ASCAT.
 
-## base command
-
-needs these 3 inputs from other tools
-
-```
--in /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.germline.bed  \
--tc $TMP/tum.cn.bed \
--nc $TMP/norm.cn.bed \
-```
-
-Prep ASCAT for caveman
-
-```
-echo -e "CaVEMan prep: `date`"
-
-set -x
-ASCAT_CN="/datastore/output/${NAME_MT}_vs_${NAME_WT}/ascat/$NAME_MT.copynumber.caveman.csv"
-perl -ne '@F=(split q{,}, $_)[1,2,3,4]; $F[1]-1; print join("\t",@F)."\n";' < $ASCAT_CN > $TMP/norm.cn.bed
-perl -ne '@F=(split q{,}, $_)[1,2,3,6]; $F[1]-1; print join("\t",@F)."\n";' < $ASCAT_CN > $TMP/tum.cn.bed
-set +x
-
-```
+### base command
 
 ```{sh base command, eval=FALSE}
 
@@ -60,27 +39,15 @@ caveman.pl
 
 <br><br><br><br>
 
-## docker 
+### docker 
 
 The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-## arguments
+### App ports {.tabset .tabset-fade .tabset-tabs}
 
-```{r arguments, eval=run.mode=="push"}
-arguments = list(
-  
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
-
-)
-
-```
-
-
-## App ports {.tabset .tabset-fade .tabset-tabs}
-
-### Inputs
+#### Inputs
 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
@@ -95,59 +62,105 @@ input(id = "pindel_germline_bed", label = "pindel_germline_bed", description = "
   
 input(id = "ascat_tumour_cn_bed", label = "ascat_tumour_cn_bed", description = "ascat_tumour_cn_bed", type = "File", prefix = "-tc"),
   
-input(id = "ascat_normal_cn_bed", label = "ascat_normal_cn_bed", description = "ascat_normal_cn_bed", type = "File", prefix = "-nc")
+input(id = "ascat_normal_cn_bed", label = "ascat_normal_cn_bed", description = "ascat_normal_cn_bed", type = "File", prefix = "-nc"),
+  
+input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", description = "extracted reference files", type = "File...", stageInput = "link")
 
 )
 
 ```
 
-### Outputs
+
+#### arguments
+
+```{r arguments, eval=run.mode=="push"}
+
+arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& ls -lR\"")))
+
+```
+
+
+#### Outputs
 
 ```{r output, eval = run.mode=="push"}
 
 outputs = list(
 
 output(id = "std_out", label = "std_out", 
-description = "standard output", type = "File...",
+description = "standard output", type = "File",
 metadata = list(org = "cgp"),
-glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.{out}\"")),
+glob = "\"std.out\""),
   
-output(id = "caveman_output", label = "caveman_output", 
-description = "caveman_output", type = "File",
+output(id = "caveman_snv_bed", label = "caveman_snv_bed", 
+description = "caveman_snv_bed", type = "File...",
 inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
-script = "\"caveman_output/*.bedpe\""))
+script = "\"caveman_output/*bed\"")),
+  
+output(id = "caveman_all_vcf", label = "caveman_all_vcf", 
+description = "caveman_all_vcf", type = "File...",
+inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script = "\"caveman_output/*vcf.gz\""), secondaryFiles = list(".tbi")),
+  
+output(id = "caveman_flagged_muts_vcf", label = "caveman_flagged_muts_vcf", 
+description = "caveman_flagged_muts_vcf", type = "File",
+inheritMetadataFrom = "#normal_bam", metadata = list(org = "cgp"),
+glob = Expression(engine = "#cwl-js-engine",
+script ="\"caveman_output/*flagged.muts.vcf.gz\""), secondaryFiles = list(".tbi"))
   
 )
 
 
 ```
 
-## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
-  
-### Tool object
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+
+#### Tool object
 
 ```{r 5 create tool object, eval=run.mode=="push"}
 
 tool <- Tool(
 id = "CaVEMan", 
 label = "CaVEMan",
-hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
+hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), mem(1000)),
 baseCommand = "CPU=`grep -c ^processor /proc/cpuinfo` && caveman.pl -t $CPU -s HUMAN -sa GRCh37 -st WGS -st genomic -ig caveman_ucscHiDepth_0.01_merge1000_no_exon.tsv -b ./ -u ./ -o caveman_output",
 stdout = "std.out",
 inputs = inputs,
+arguments = arguments,   
 outputs = outputs)
 
 
 ```
 
-### Push app to sbg platform
+#### Push app to sbg platform
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 
-p$app_add("CaVEMan", tool)
+project$app_add("CaVEMan", tool)
 
 
 ```
 
+### notes
+
+needs these 3 inputs from other tools
+
+```
+-in /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.germline.bed  \
+-tc $TMP/tum.cn.bed \
+-nc $TMP/norm.cn.bed \
+```
+
+Prep ASCAT for caveman
+
+```
+echo -e "CaVEMan prep: `date`"
+
+set -x
+ASCAT_CN="/datastore/output/${NAME_MT}_vs_${NAME_WT}/ascat/$NAME_MT.copynumber.caveman.csv"
+perl -ne '@F=(split q{,}, $_)[1,2,3,4]; $F[1]-1; print join("\t",@F)."\n";' < $ASCAT_CN > $TMP/norm.cn.bed
+perl -ne '@F=(split q{,}, $_)[1,2,3,6]; $F[1]-1; print join("\t",@F)."\n";' < $ASCAT_CN > $TMP/tum.cn.bed
+set +x
+
+```

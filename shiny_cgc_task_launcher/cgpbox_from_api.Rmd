@@ -1,0 +1,81 @@
+---
+title: '----'
+runtime: shiny
+output:
+  html_document:
+    code_folding: hide
+    theme: cosmo
+    highlight: pygments
+---
+
+# {.tabset .tabset-fade .tabset-tabs}
+
+```{r include = FALSE}
+require(rmarkdown); require(knitr); require(readr); require(shiny);
+require(dplyr); require(jsonlite); require(tibble);
+
+```
+
+## User Parameters
+
+```{r get api token and proj id}
+inputPanel(
+  textInput("cgc_api_token", label = "CGC API Token:",placeholder = "Secret token"),
+  textInput("project_id", label = "CGC Project ID:",placeholder = "Lung WGS Development")
+)
+
+```
+
+## Metadata Table
+
+```{r metadata table}
+require(stringr);
+
+
+renderDataTable({
+
+test = as_tibble(fromJSON(system(
+paste0('curl -s -H "X-SBG-Auth-Token:',input$cgc_api_token,'" -H "content-type: application/json" -X GET "https://cgc-api.sbgenomics.com/v2/files?project=', input$project_id,'"'), intern = TRUE))$items) %>% 
+select(project, name, id) %>%
+mutate(name = str_trim(name, side = "both")) 
+
+
+%>% 
+filter(str_sub(name, start= -3) == "bam")
+
+
+group_by(project, name, id) %>% 
+do({
+metadata = as_tibble(fromJSON(system(paste0('curl -s -H "X-SBG-Auth-Token:',input$cgc_api_token,'" -H "content-type: application/json" -X GET ""https://cgc-api.sbgenomics.com/v2/files/', .$id,'/metadata""'), intern = TRUE)))}) %>% 
+ungroup()
+
+  
+})
+
+```
+
+## Launcher
+
+Need to add code for this.  Shiny seems to be having a problem with the sevenbridges R package.
+
+```{r eval=FALSE}
+require(dplyr); require(jsonlite); require(tibble); #require(sevenbridges);
+
+# run tasks via api ----
+
+do{
+
+#get task id
+cgpbox = project$app("cgpbox")
+
+task = project$task_add(name = "Kidney Sample01 Batch", 
+description = "C, 
+app = cgpbox$id)
+
+}
+
+
+
+
+```
+

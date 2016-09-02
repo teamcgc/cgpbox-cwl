@@ -1,0 +1,135 @@
+```{r include = FALSE}
+require(rmarkdown); require(knitr); require(sevenbridges); require(readr)
+
+options(max.print = "99"); opts_knit$set(width = 99)
+opts_chunk$set(cache=FALSE, tidy=FALSE)
+
+source("~/sbg_auth.R")
+
+```
+
+<hr>
+
+CGP Annotate
+
+### base command
+
+```{sh base command, eval=FALSE}
+
+AnnotateVcf.pl 
+-i [VCF input from pindel or caveman]
+-c vagrent_Homo_sapiens.GRCh37.75.vagrent.cache.gz
+-o annotated.muts.vcf
+
+```
+
+<br><br><br><br>
+
+### docker 
+
+The docker conatiner is
+
+``` cgrlab/cgpbox_dev:develop ```
+
+### App ports {.tabset .tabset-fade .tabset-tabs}
+
+#### Inputs
+
+```{r inputs, eval=run.mode=="push"}
+inputs = list(
+  
+input(id = "vcf", label = "vcf", description = "vcf prep annotation", type = "File", secondaryFiles = list(".tbi"), prefix = "-i"),
+
+input(id = "cgpbox_reference_files", label = "cgpbox_reference_files", description = "extracted reference files", type = "File...", stageInput = "link")
+
+)
+
+```
+
+
+#### arguments
+
+```{r arguments, eval=run.mode=="push"}
+
+arguments = arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& ls -lR\"")))
+
+```
+
+#### Outputs
+
+```{r output, eval = run.mode=="push"}
+
+outputs = list(
+
+output(id = "std_out", label = "std_out", 
+description = "standard output", type = "File...",
+metadata = list(org = "cgp"),
+glob = "\"std.out\""),
+  
+output(id = "annotated_vcf", label = "annotated_vcf", 
+description = "annotated vcf", type = "File",
+inheritMetadataFrom = "#vcf", metadata = list(org = "cgp"),
+glob = "\"*vcf*\"")
+  
+)
+
+
+```
+
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+  
+#### Tool object
+
+```{r 5 create tool object, eval=run.mode=="push"}
+
+tool <- Tool(
+id = "cgp_annotate_vcf", 
+label = "CGP Annotate VCFs",
+hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(1000)),
+baseCommand = "AnnotateVcf.pl -c vagrent_Homo_sapiens.GRCh37.75.vagrent.cache.gz -o annotated.muts.vcf",
+stdout = "std.out",
+inputs = inputs,
+arguments = arguments,
+outputs = outputs)
+
+
+```
+
+#### Make cwl file
+
+```{r make cwl, eval=destination=="platform"}
+
+write(tool$toJSON(pretty = TRUE), "cgp_annotate_vcf.json")
+
+```
+
+#### Push app to sbg platform
+
+```{r 6 push app to sbg, eval=destination=="platform"}
+
+project$app_add("cgp_annotate_vcf", tool)
+
+
+```
+
+### notes
+
+```
+
+# annotate pindel
+
+AnnotateVcf.pl 
+-t 
+-c $REF_BASE/vagrent/vagrent.cache.gz
+-i /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.flagged.vcf.gz
+-o /datastore/output/${NAME_MT}_vs_${NAME_WT}/pindel/${NAME_MT}_vs_${NAME_WT}.annot.vcf
+
+# annotate caveman
+
+AnnotateVcf.pl 
+-t 
+-c $REF_BASE/vagrent/vagrent.cache.gz \
+-i /datastore/output/${NAME_MT}_vs_${NAME_WT}/caveman/${NAME_MT}_vs_${NAME_WT}.flagged.muts.vcf.gz
+-o /datastore/output/${NAME_MT}_vs_${NAME_WT}/c.annot.muts.vcf
+
+```

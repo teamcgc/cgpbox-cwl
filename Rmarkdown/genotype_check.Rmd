@@ -12,7 +12,7 @@ source("~/sbg_auth.R")
 
 
 
-## base command
+### base command
 
 ```{sh base command, eval=FALSE}
 
@@ -26,26 +26,15 @@ compareBamGenotypes.pl \
 
 <br><br><br><br>
 
-## docker 
+### docker 
 
 The docker conatiner is
 
 ``` cgrlab/cgpbox_dev:develop ```
 
-## arguments
+### App ports {.tabset .tabset-fade .tabset-tabs}
 
-```{r arguments, eval=run.mode=="skip"}
-arguments = list(
-  
-input(id = "bam", label = "bam", description = "either wildtype or tumour bam", type = "File", prefix = "-i")
-
-)
-
-```
-
-## App ports {.tabset .tabset-fade .tabset-tabs}
-
-### Inputs
+#### Inputs
 
 ```{r inputs, eval=run.mode=="push"}
 inputs = list(
@@ -58,7 +47,15 @@ input(id = "tumour_bam", label = "tumour_bam", description = "mutant tumour bam"
 
 ```
 
-### Outputs
+#### arguments
+
+```{r arguments, eval=run.mode=="push"}
+
+arguments = CCBList(CommandLineBinding(position = 99, valueFrom = list("\"&& ls -lR\"")))
+
+```
+
+#### Outputs
 
 ```{r output, eval = run.mode=="push"}
 
@@ -67,11 +64,10 @@ outputs = list(
 output(id = "std_out", label = "std_out", 
 description = "standard output", type = "File...",
 metadata = list(org = "cgp"),
-glob = Expression(engine = "#cwl-js-engine",
-script = "\"*.{out}\"")),
+glob = "\"std.out\""),
   
-output(id = "result", label = "genotype comparison", 
-description = "genotype comarison results", type = "File...",
+output(id = "genotype_comparison_results", label = "genotype comparison results", 
+description = "genotype comarison results", type = "File",
 inheritMetadataFrom = "#tumour_bam", metadata = list(org = "cgp"),
 glob = Expression(engine = "#cwl-js-engine",
 script = "\"genotype_check/*.json\""))
@@ -81,9 +77,9 @@ script = "\"genotype_check/*.json\""))
 
 ```
 
-## Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
+### Define Tool Object and Push to Platform {.tabset .tabset-fade .tabset-tabs}
   
-### Tool object
+#### Tool object
 
 ```{r 5 create tool object, eval=run.mode=="push"}
 
@@ -94,16 +90,25 @@ hints = requirements(docker(pull = "cgrlab/cgpbox_dev:develop"), cpu(1), mem(100
 baseCommand = "compareBamGenotypes.pl -o genotype_check -j genotype_check/genotype_check_result.json",
 stdout = "std.out",
 inputs = inputs,
+argument = arguments,
 outputs = outputs)
 
 
 ```
 
-### Push app to sbg platform
+#### Make cwl file
+
+```{r make cwl, eval=destination=="platform"}
+
+write(tool$toJSON(pretty = TRUE), "genotype_check.json")
+
+```
+
+#### Push app to sbg platform
 
 ```{r 6 push app to sbg, eval=destination=="platform"}
 
-p$app_add("genotype-check", tool)
+project$app_add("genotype-check", tool)
 
 
 ```

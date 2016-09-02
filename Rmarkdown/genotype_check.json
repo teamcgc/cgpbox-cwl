@@ -1,0 +1,117 @@
+{
+  "sbg:id": "genotype-check",
+  "id": "#genotype-check",
+  "inputs": [
+    {
+      "type": ["null", "File"],
+      "label": "normal_bam",
+      "description": "normal wildtype bam",
+      "streamable": false,
+      "default": "",
+      "id": "#normal_bam",
+      "inputBinding": {
+        "secondaryFiles": [
+          ".bai"
+        ],
+        "position": 0,
+        "prefix": "-nb",
+        "separate": true,
+        "sbg:cmdInclude": true
+      },
+      "sbg:stageInput": "link",
+      "required": false
+    },
+    {
+      "type": ["null", "File"],
+      "label": "tumour_bam",
+      "description": "mutant tumour bam",
+      "streamable": false,
+      "default": "",
+      "id": "#tumour_bam",
+      "inputBinding": {
+        "secondaryFiles": [
+          ".bai"
+        ],
+        "position": 0,
+        "prefix": "-tb",
+        "separate": true,
+        "sbg:cmdInclude": true
+      },
+      "sbg:stageInput": "link",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "std_out",
+      "description": "standard output",
+      "streamable": false,
+      "default": "",
+      "id": "#std_out",
+      "outputBinding": {
+        "glob": "\"std.out\"",
+        "sbg:metadata": {
+          "org": "cgp"
+        }
+      }
+    },
+    {
+      "type": ["null", "File"],
+      "label": "genotype comparison results",
+      "description": "genotype comarison results",
+      "streamable": false,
+      "default": "",
+      "id": "#genotype_comparison_results",
+      "outputBinding": {
+        "glob": {
+          "engine": "#cwl-js-engine",
+          "script": "\"genotype_check/*.json\"",
+          "class": "Expression"
+        },
+        "sbg:inheritMetadataFrom": "#tumour_bam",
+        "sbg:metadata": {
+          "org": "cgp"
+        }
+      }
+    }
+  ],
+  "requirements": [],
+  "hints": [
+    {
+      "class": "DockerRequirement",
+      "dockerPull": "cgrlab/cgpbox_dev:develop"
+    },
+    {
+      "class": "sbg:CPURequirement",
+      "value": 1
+    },
+    {
+      "class": "sbg:MemRequirement",
+      "value": 1000
+    }
+  ],
+  "label": "compare bam genotypes",
+  "class": "CommandLineTool",
+  "baseCommand": [
+    "compareBamGenotypes.pl -o genotype_check -j genotype_check/genotype_check_result.json"
+  ],
+  "arguments": [
+    {
+      "position": 99,
+      "separate": true,
+      "valueFrom": {
+        "engine": "#cwl-js-engine",
+        "script": "\"&& ls -lR\"",
+        "class": "Expression"
+      }
+    }
+  ],
+  "stdout": "std.out"
+}
